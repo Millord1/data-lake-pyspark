@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.3.3
+    container_name: redpanda-tracker
+    command:
+      - redpanda start
+      - --smp 1
+      - --memory 1G
+      - --mode dev-container
+      - --pandaproxy-addr 0.0.0.0:8082
+      - --kafka-addr 0.0.0.0:9092
+    ports:
+      - "8082:8082"
+      - "9092:9092"
+      - "9644:9644"
