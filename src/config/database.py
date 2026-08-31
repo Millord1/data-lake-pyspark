@@ -1,3 +1,9 @@
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 KAFKA_TOPIC = "velib-status"
 
 
@@ -15,3 +21,15 @@ class StorageConfig:
         if dataset_name:
             path = f"{path}/{dataset_name}"
         return path
+
+
+class MongoConfig:
+    HOST: str = os.getenv("MONGO_HOST", "localhost")
+    PORT: int = int(os.getenv("MONGO_PORT", "27017"))
+    USER: str = os.getenv("MONGO_INITDB_ROOT_USERNAME", "admin")
+    PASSWORD: str = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "password123")
+    DATABASE: str = os.getenv("MONGO_DB_NAME", "smartcity_landing")
+
+    @classmethod
+    def get_uri(cls) -> str:
+        return f"mongodb://{cls.USER}:{cls.PASSWORD}@{cls.HOST}:{cls.PORT}/?authSource=admin"
