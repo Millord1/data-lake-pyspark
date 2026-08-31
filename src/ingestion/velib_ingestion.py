@@ -39,7 +39,7 @@ def download_and_move_dataset() -> str:
 
     if not os.getenv("KAGGLE_USERNAME") or not os.getenv("KAGGLE_API_TOKEN"):
         raise ValueError(
-            "Les variables KAGGLE_USERNAME ou KAGGLE_API_TOKEN sont manquantes dans le .env"
+            "Les variables KAGGLE_USERNAME ou KAGGLE_API_TOKEN sont manquantes"
         )
 
     print("Téléchargement du dataset Kaggle...")
@@ -169,4 +169,4 @@ def upload_parquet_to_minio() -> str:
         print("Upload de l'historique vers MinIO terminé avec succès.")
         return target_s3_path
     except (BotoCoreError, ClientError) as e:
-        raise RuntimeError(f"Échec du transfert vers MinIO : {e}")
+        raise RuntimeError(f"Échec du transfert vers MinIO : {e}") from e

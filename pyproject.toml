@@ -20,3 +20,33 @@ dependencies = [
     "confluent-kafka==2.5.0",
     "pyspark==3.5.1",
 ]
+
+[tool.ruff]
+# Longueur de ligne max (alignée avec Black en général)
+line-length = 88
+target-version = "py311"
+
+# Dossiers à ignorer
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+# Règles activées
+# E/W = pycodestyle, F = Pyflakes, I = isort (tri des imports), B = flake8-bugbear
+select = ["E", "W", "F", "B"]
+
+# Règles spécifiques à ignorer si besoin
+ignore = []
+
+# Autoriser la suppression automatique des imports inutilisés
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.isort]
+# Configuration spécifique du tri d'imports
+combine-as-imports = false

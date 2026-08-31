@@ -8,10 +8,11 @@ import duckdb
 from confluent_kafka import Consumer, KafkaError
 from dotenv import load_dotenv
 
+from src.config.database import KAFKA_TOPIC, StorageConfig
+
 project_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(project_root))
 
-from src.config.database import KAFKA_TOPIC, StorageConfig
 
 load_dotenv()
 
