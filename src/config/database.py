@@ -21,7 +21,7 @@ class StorageConfig:
         return f"s3://{cls.BUCKET_NAME}/{folder}/{cls.SCHEMA_NAME}"
 
 
-class TableNames(StrEnum):
+class GTFSTableNames(StrEnum):
     agency: str = "agency"
     calendar: str = "calendar"
     calendar_dates: str = "calendar_dates"
