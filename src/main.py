@@ -1,9 +1,8 @@
-from src.ingestion.velib_ingestion import ingest_stations_velib, upload_parquet_to_minio
+from src.ingestion.velib_histo import run
 
 
 def main():
-    ingest_stations_velib()
-    upload_parquet_to_minio()
+    run()
 
 
 if __name__ == "__main__":
