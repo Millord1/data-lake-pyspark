@@ -1,6 +1,41 @@
+from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 
 KAFKA_TOPIC = "velib-status"
+
+
+class AnalysisQuery(StrEnum):
+    TEST_QUERY = "test_query"
+    COUNT_STATIONS = "count_stations"
+    TOP_STATIONS = "top_stations"
+    AVAILABLE_BIKES_BY_STATION = "available_bikes_by_station"
+
+
+@dataclass(frozen=True)
+class AnalysisConfig:
+    sql_file: Path = Path("src/analyses/analyses.sql")
+    view_name: str = "velib"
+
+
+class AnalysisQueries:
+    def __init__(self, sql_file: Path):
+        self.queries = self._load_queries(sql_file)
+
+    @staticmethod
+    def _load_queries(sql_file: Path) -> dict[str, str]:
+        content = sql_file.read_text()
+
+        queries = {}
+
+        for block in content.split("-- name: ")[1:]:
+            name, query = block.split("\n", 1)
+            queries[name.strip()] = query.strip()
+
+        return queries
+
+    def get(self, query: AnalysisQuery) -> str:
+        return self.queries[query.value]
 
 
 class StorageConfig:

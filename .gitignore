@@ -4,3 +4,4 @@
 env
 .env.docker
 data/
+spark-warehouse

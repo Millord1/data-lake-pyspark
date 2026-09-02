@@ -119,7 +119,7 @@ def ingest_velib_history(source_url: str, date_str: str) -> None:
         conn.close()
 
 
-def run() -> None:
+def run_histo_ingestion() -> None:
     for date_str, url in VELIB_HISTORY:
         try:
             ingest_velib_history(url, date_str)
