@@ -26,10 +26,36 @@ class StorageConfig:
 class MongoConfig:
     HOST: str = os.getenv("MONGO_HOST", "localhost")
     PORT: int = int(os.getenv("MONGO_PORT", "27017"))
-    USER: str = os.getenv("MONGO_INITDB_ROOT_USERNAME", "admin")
-    PASSWORD: str = os.getenv("MONGO_INITDB_ROOT_PASSWORD", "password123")
-    DATABASE: str = os.getenv("MONGO_DB_NAME", "smartcity_landing")
+    USER: str | None = os.getenv("MONGO_USER")
+    PASSWORD: str | None = os.getenv("MONGO_PASSWORD")
+    DATABASE: str | None = os.getenv("MONGO_DB_NAME")
+
+    @classmethod
+    def _validate(cls) -> None:
+        """Ensure all required database credentials exist in the environment."""
+        missing = [
+            key
+            for key, val in {
+                "MONGO_USER": cls.USER,
+                "MONGO_PASSWORD": cls.PASSWORD,
+                "MONGO_DB_NAME": cls.DATABASE,
+            }.items()
+            if not val
+        ]
+        if missing:
+            raise ValueError(
+                f"Missing critical environment variable(s): {', '.join(missing)}. "
+                f"Check your .env file."
+            )
 
     @classmethod
     def get_uri(cls) -> str:
+        """Return the formatted MongoDB connection URI."""
+        cls._validate()
         return f"mongodb://{cls.USER}:{cls.PASSWORD}@{cls.HOST}:{cls.PORT}/?authSource=admin"
+
+    @classmethod
+    def get_database_name(cls) -> str:
+        """Return the target database name."""
+        cls._validate()
+        return cls.DATABASE  # type: ignore[return-value]

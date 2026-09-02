@@ -39,8 +39,7 @@ services:
       - minio-network
 
   mongodb:
-    image: mongo:8
-    command: mongod --logpath /dev/null
+    image: mongo:8.0.4
     container_name: distant_doc_mongodb
     ports:
       - "27017:27017"

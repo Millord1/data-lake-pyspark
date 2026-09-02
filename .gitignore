@@ -4,3 +4,5 @@
 env
 .env.docker
 data/
+*.egg-info/
+*.egg
