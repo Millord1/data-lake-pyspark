@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
@@ -11,9 +12,15 @@ class AnalysisQuery(StrEnum):
     AVAILABLE_BIKES_BY_STATION = "available_bikes_by_station"
 
 
-class AnalysisConfig(StrEnum):
+@dataclass(frozen=True)
+class AnalysisConfig:
     sql_file: Path = Path("src/sql/analyses.sql")
     view_name: str = "velib"
+
+
+class SparkFiles(StrEnum):
+    histo_files: str = "velib_historique_*.parquet"
+    real_time_files: str = "velib_realtime_*.parquet"
 
 
 class AnalysisQueries:
@@ -43,17 +50,43 @@ class StorageConfig:
     SCHEMA_NAME = "public"
 
     @classmethod
-    def get_bucket_path(cls, raw: bool = True, dataset_name: str = "") -> str:
-        """Génère le chemin S3 cible (ex: s3://data/raw/public/stations)."""
+    def get_bucket_path(
+        cls,
+        raw: bool = True,
+        dataset_name: str = "",
+    ) -> str:
+        """Retourne un chemin S3 complet."""
         folder = cls.RAW_FOLDER if raw else cls.CLEANED_FOLDER
-        path = f"s3://{cls.BUCKET_NAME}/{folder}/{cls.SCHEMA_NAME}"
+        path = f"s3://{cls.BUCKET_NAME}/" f"{folder}/" f"{cls.SCHEMA_NAME}"
         if dataset_name:
             path = f"{path}/{dataset_name}"
+
         return path
 
     @classmethod
     def get_spark_s3_path(cls):
-        return cls.get_bucket_path().replace("s3", "s3a") + "/historique/"
+        return cls.get_bucket_path().replace("s3", "s3a") + "/historique"
+
+    @classmethod
+    def get_s3_key(
+        cls,
+        raw: bool = True,
+        dataset_name: str = "",
+        filename: str = "",
+    ) -> str:
+        """Retourne uniquement la clé S3 utilisée par boto3."""
+        folder = cls.RAW_FOLDER if raw else cls.CLEANED_FOLDER
+        parts = [
+            folder,
+            cls.SCHEMA_NAME,
+        ]
+
+        if dataset_name:
+            parts.append(dataset_name)
+        if filename:
+            parts.append(filename)
+
+        return "/".join(parts)
 
 
 class SourcesUrls(StrEnum):

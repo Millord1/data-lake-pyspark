@@ -5,8 +5,6 @@ from pyspark.sql import functions as F
 def validate_velib(df: DataFrame) -> None:
     print("DATA QUALITY")
 
-    print(f"Rows: {df.count()}")
-
     df.select(
         F.count("*").alias("rows"),
         F.countDistinct("station_id").alias("stations"),

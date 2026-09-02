@@ -1,68 +1,285 @@
+import struct
+
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
+from pyspark.sql.types import DoubleType
 
 
-def clean_velib_df(df: DataFrame) -> DataFrame:
-    """
-    Nettoie les données Vélib brutes.
+class VelibCleaner:
+    """Nettoie et normalise les données Vélib."""
 
-    - Normalisation des types
-    - Suppression des lignes invalides
-    - Vérifications métier
-    - Normalisation des statuts
-    - Déduplication
-    """
+    COMMON_COLUMNS = [
+        "station_id",
+        "capacity",
+        "bikes",
+        "mechanical",
+        "ebike",
+        "available_stands",
+        "lat",
+        "lon",
+        "ts_utc",
+        "tbin_utc",
+        "status",
+    ]
 
-    cleaned = (
-        df
-        # Types
-        .withColumn("station_id", F.col("station_id").cast("long"))
-        .withColumn("bikes", F.col("bikes").cast("int"))
-        .withColumn("capacity", F.col("capacity").cast("int"))
-        .withColumn("mechanical", F.col("mechanical").cast("int"))
-        .withColumn("ebike", F.col("ebike").cast("int"))
-        .withColumn("lat", F.col("lat").cast("double"))
-        .withColumn("lon", F.col("lon").cast("double"))
-        .withColumn("ts_utc", F.to_timestamp("ts_utc"))
-        .withColumn("tbin_utc", F.to_timestamp("tbin_utc"))
-        # Normalisation texte
-        .withColumn("status", F.upper(F.trim(F.col("status"))))
-        # Champs obligatoires
-        .filter(F.col("station_id").isNotNull())
-        .filter(F.col("ts_utc").isNotNull())
-        .filter(F.col("lat").isNotNull())
-        .filter(F.col("lon").isNotNull())
-        # Identifiants
-        .filter(F.col("station_id") > 0)
-        # Coordonnées Paris / région parisienne
-        .filter(F.col("lat").between(48.0, 49.0))
-        .filter(F.col("lon").between(1.5, 3.0))
-        # Valeurs numériques
-        .filter(F.col("bikes") >= 0)
-        .filter(F.col("capacity") > 0)
-        .filter(F.col("mechanical") >= 0)
-        .filter(F.col("ebike") >= 0)
-        # Cohérence métier
-        # Le nombre total de vélos ne peut pas dépasser la capacité
-        .filter(F.col("bikes") <= F.col("capacity"))
-        # Les mécaniques + électriques doivent correspondre
-        # au nombre total de vélos.
-        .filter(F.col("mechanical") + F.col("ebike") == F.col("bikes"))
-        # Chaque catégorie ne peut pas dépasser la capacité
-        .filter(F.col("mechanical") <= F.col("capacity"))
-        .filter(F.col("ebike") <= F.col("capacity"))
-        # Statut
-        .filter(F.col("status").isNotNull())
-        .filter(F.col("status").isin("OPEN", "CLOSED"))
-        # Cohérence timestamp
-        .filter(F.col("tbin_utc").isNull() | (F.col("tbin_utc") <= F.col("ts_utc")))
-        # Déduplication
-        .dropDuplicates(
-            [
-                "station_id",
-                "ts_utc",
-            ]
+    @staticmethod
+    def decode_lon(value):
+        """Décode la longitude depuis le WKB de coordonnees_geo."""
+
+        if value is None:
+            return None
+
+        try:
+            return struct.unpack(
+                "<d",
+                bytes(value[5:13]),
+            )[0]
+        except (struct.error, IndexError):
+            return None
+
+    @staticmethod
+    def decode_lat(value):
+        """Décode la latitude depuis le WKB de coordonnees_geo."""
+
+        if value is None:
+            return None
+
+        try:
+            return struct.unpack(
+                "<d",
+                bytes(value[13:21]),
+            )[0]
+        except (struct.error, IndexError):
+            return None
+
+    def prepare_stations(
+        self,
+        df: DataFrame,
+    ) -> DataFrame:
+        """Prépare le référentiel des stations."""
+
+        decode_lon_udf = F.udf(
+            self.decode_lon,
+            DoubleType(),
         )
-    )
 
-    return cleaned
+        decode_lat_udf = F.udf(
+            self.decode_lat,
+            DoubleType(),
+        )
+
+        return (
+            df.withColumn(
+                "lon",
+                decode_lon_udf(F.col("coordonnees_geo")),
+            )
+            .withColumn(
+                "lat",
+                decode_lat_udf(F.col("coordonnees_geo")),
+            )
+            .withColumn(
+                "station_id",
+                F.col("stationcode").cast("long"),
+            )
+            .select(
+                "station_id",
+                "lat",
+                "lon",
+            )
+            .filter(F.col("station_id").isNotNull())
+            .filter(F.col("lat").isNotNull())
+            .filter(F.col("lon").isNotNull())
+            .dropDuplicates(["station_id"])
+        )
+
+    def clean_historique(
+        self,
+        df: DataFrame,
+        stations_df: DataFrame,
+    ) -> DataFrame:
+        """Nettoie les données historiques."""
+
+        stations = self.prepare_stations(stations_df)
+
+        return (
+            df.withColumn(
+                "station_id",
+                F.col("station_id").cast("long"),
+            )
+            .withColumn(
+                "capacity",
+                F.col("bike_stands").cast("int"),
+            )
+            .withColumn(
+                "bikes",
+                F.col("available_bikes").cast("int"),
+            )
+            .withColumn(
+                "available_stands",
+                F.col("available_bike_stands").cast("int"),
+            )
+            .withColumn(
+                "ts_utc",
+                F.to_timestamp("last_update"),
+            )
+            .withColumn(
+                "status",
+                F.upper(F.trim(F.col("status"))),
+            )
+            # .dropDuplicates(
+            #     [
+            #         "station_id",
+            #         "ts_utc",
+            #     ]
+            # )
+            .join(
+                stations,
+                on="station_id",
+                how="left",
+            )
+            .filter(F.col("station_id").isNotNull())
+            .filter(F.col("station_id") > 0)
+            .filter(F.col("ts_utc").isNotNull())
+            .filter(F.col("lat").isNotNull())
+            .filter(F.col("lon").isNotNull())
+            .filter(
+                F.col("lat").between(
+                    48.0,
+                    49.0,
+                )
+            )
+            .filter(
+                F.col("lon").between(
+                    1.5,
+                    3.0,
+                )
+            )
+            .filter(F.col("capacity") > 0)
+            .filter(F.col("bikes") >= 0)
+            .filter(F.col("bikes") <= F.col("capacity"))
+            .filter(
+                F.col("status").isin(
+                    "OPEN",
+                    "CLOSED",
+                )
+            )
+            .withColumn(
+                "mechanical",
+                F.lit(None).cast("int"),
+            )
+            .withColumn(
+                "ebike",
+                F.lit(None).cast("int"),
+            )
+            .withColumn(
+                "tbin_utc",
+                F.lit(None).cast("timestamp"),
+            )
+            .select(*self.COMMON_COLUMNS)
+        )
+
+    def clean_realtime(
+        self,
+        df: DataFrame,
+        stations_df: DataFrame,
+    ) -> DataFrame:
+        """Nettoie les données temps réel."""
+
+        stations = self.prepare_stations(stations_df)
+
+        return (
+            df.withColumn(
+                "station_id",
+                F.col("station_id").cast("long"),
+            )
+            .withColumn(
+                "bikes",
+                F.col("bikes").cast("int"),
+            )
+            .withColumn(
+                "capacity",
+                F.col("capacity").cast("int"),
+            )
+            .withColumn(
+                "mechanical",
+                F.col("mechanical").cast("int"),
+            )
+            .withColumn(
+                "ebike",
+                F.col("ebike").cast("int"),
+            )
+            .withColumn(
+                "ts_utc",
+                F.to_timestamp("ts_utc"),
+            )
+            .withColumn(
+                "tbin_utc",
+                F.to_timestamp("tbin_utc"),
+            )
+            .join(
+                stations,
+                on="station_id",
+                how="left",
+            )
+            .withColumn(
+                "available_stands",
+                (F.col("capacity") - F.col("bikes")).cast("int"),
+            )
+            .withColumn(
+                "status",
+                F.lit(None).cast("string"),
+            )
+            .filter(F.col("station_id").isNotNull())
+            .filter(F.col("station_id") > 0)
+            .filter(F.col("ts_utc").isNotNull())
+            .filter(F.col("lat").isNotNull())
+            .filter(F.col("lon").isNotNull())
+            .filter(
+                F.col("lat").between(
+                    48.0,
+                    49.0,
+                )
+            )
+            .filter(
+                F.col("lon").between(
+                    1.5,
+                    3.0,
+                )
+            )
+            .filter(F.col("capacity") > 0)
+            .filter(F.col("bikes") >= 0)
+            .filter(F.col("mechanical") >= 0)
+            .filter(F.col("ebike") >= 0)
+            .filter(F.col("bikes") <= F.col("capacity"))
+            .filter(F.col("mechanical") <= F.col("capacity"))
+            .filter(F.col("ebike") <= F.col("capacity"))
+            .filter(F.col("mechanical") + F.col("ebike") == F.col("bikes"))
+            .filter(F.col("tbin_utc").isNull() | (F.col("tbin_utc") <= F.col("ts_utc")))
+            .select(*self.COMMON_COLUMNS)
+            # .dropDuplicates(
+            #     [
+            #         "station_id",
+            #         "ts_utc",
+            #     ]
+            # )
+        )
+
+    def clean(
+        self,
+        historique_df: DataFrame,
+        realtime_df: DataFrame,
+        stations_df: DataFrame,
+    ) -> DataFrame:
+        """Nettoie et fusionne toutes les données Vélib."""
+
+        historique = self.clean_historique(
+            historique_df,
+            stations_df,
+        )
+
+        realtime = self.clean_realtime(
+            realtime_df,
+            stations_df,
+        )
+
+        return historique.unionByName(realtime)

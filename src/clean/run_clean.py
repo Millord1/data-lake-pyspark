@@ -1,25 +1,43 @@
-from src.clean.spark_clean import clean_velib_df
-from src.config.database import AnalysisConfig, StorageConfig
+from src.clean.spark_clean import VelibCleaner
+from src.config.database import (
+    AnalysisConfig,
+    StorageConfig,
+)
 from src.driver.spark_driver import SparkConnector
 from tests.integrity import validate_velib
 
 
 def clean_velib():
-    """Run clean for velib and integrity checks"""
+    """Nettoie les données Vélib."""
+
     with SparkConnector() as spark:
-        df = spark.get_data()
+        cleaner = VelibCleaner()
 
-        print("RAW")
-        validate_velib(df)
+        historique_df = spark.get_data("velib_historique_*.parquet")
+        realtime_df = spark.get_data("velib_realtime_*.parquet")
+        stations_df = spark.get_stations()
 
-        cleaned_df = clean_velib_df(df)
+        historique_clean = cleaner.clean_historique(
+            historique_df,
+            stations_df,
+        )
+        validate_velib(historique_clean)
 
-        print("CURATED")
+        realtime_clean = cleaner.clean_realtime(realtime_df, stations_df)
+        validate_velib(realtime_clean)
+
+        cleaned_df = historique_clean.unionByName(
+            realtime_clean,
+            allowMissingColumns=True,
+        )
+
         validate_velib(cleaned_df)
 
         output_path = StorageConfig.get_bucket_path(
             raw=False,
             dataset_name=AnalysisConfig.view_name,
-        )
+        ).replace("s3", "s3a")
 
         (cleaned_df.write.mode("overwrite").partitionBy("status").parquet(output_path))
+
+        print(f"✓ Données nettoyées : {output_path}")

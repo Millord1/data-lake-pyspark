@@ -34,14 +34,30 @@ class SparkConnector:
             .config("spark.sql.parquet.enableVectorizedReader", "false")
             .getOrCreate()
         )
+        self.spark.sparkContext.setLogLevel("ERROR")
 
-    def get_data(self, bucket_path: str | None = None) -> DataFrame:
-        """get data from S3 bucket.
+    def get_data(
+        self,
+        filename_pattern: str = "*.parquet",
+    ) -> DataFrame:
+        """Lit les données Vélib depuis MinIO."""
 
-        Returns:
-            _type_: PySpark DataFrame
-        """
-        path = bucket_path or StorageConfig.get_spark_s3_path()
+        path = StorageConfig.get_spark_s3_path()
+
+        print(f"Lecture Spark : {path}")
+        print(f"Pattern : {filename_pattern}")
+
+        return self.spark.read.option(
+            "pathGlobFilter",
+            filename_pattern,
+        ).parquet(path)
+
+    def get_stations(self) -> DataFrame:
+        path = StorageConfig.get_bucket_path(
+            raw=True,
+            dataset_name="stations",
+        ).replace("s3://", "s3a://")
+
         return self.spark.read.parquet(path)
 
     def create_view(
