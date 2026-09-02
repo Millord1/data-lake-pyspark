@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from pyspark.sql import DataFrame, SparkSession
 
-from src.config.database import get_spark_s3_path
+from src.config.database import StorageConfig
 
 load_dotenv(override=False)
 
@@ -36,7 +36,12 @@ class SparkConnector:
         )
 
     def get_data(self, bucket_path: str | None = None) -> DataFrame:
-        path = bucket_path or get_spark_s3_path()
+        """get data from S3 bucket.
+
+        Returns:
+            _type_: PySpark DataFrame
+        """
+        path = bucket_path or StorageConfig.get_spark_s3_path()
         return self.spark.read.parquet(path)
 
     def create_view(
@@ -44,12 +49,27 @@ class SparkConnector:
         df: DataFrame,
         view_name: str = "velib",
     ) -> None:
+        """Create view for PySpark
+
+        Args:
+            df (DataFrame): The PySpark DataFrame
+            view_name (str, optional): Defaults to "velib".
+        """
         df.createOrReplaceTempView(view_name)
 
     def sql(self, query: str) -> DataFrame:
+        """Run the SQL query on PySpark
+
+        Args:
+            query (str): The SQL query as string
+
+        Returns:
+            DataFrame: PySpark DataFrame
+        """
         return self.spark.sql(query)
 
     def stop(self) -> None:
+        """Stop PySpark"""
         self.spark.stop()
 
     def __enter__(self):
