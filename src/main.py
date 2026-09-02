@@ -1,4 +1,4 @@
-from src.ingestion.velib_histo import run
+from src.analysis.analyse import run
 
 
 def main():

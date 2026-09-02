@@ -19,21 +19,14 @@ class StorageConfig:
         return path
 
 
-class GTFSTableNames(StrEnum):
-    agency: str = "agency"
-    calendar: str = "calendar"
-    calendar_dates: str = "calendar_dates"
-    routes: str = "routes"
-    stop_times: str = "stop_times"
-    stops: str = "stops"
-    transfers: str = "transfers"
-    trips: str = "trips"
-
-
 class SourcesUrls(StrEnum):
     velib_station: str = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-emplacement-des-stations/exports/parquet?lang=fr&timezone=Europe%2FBerlin"
     velib_api: str = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-emplacement-des-stations/records?"
     meteo: str = ""
+
+
+def get_spark_s3_path():
+    return StorageConfig.get_bucket_path().replace("s3", "s3a") + "/historique/"
 
 
 VELIB_HISTORY = [
