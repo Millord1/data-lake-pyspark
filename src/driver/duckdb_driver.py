@@ -3,12 +3,15 @@ import os
 import duckdb
 from dotenv import load_dotenv
 
+from src.config.database import StorageConfig
+
 load_dotenv()
 
 
 class DuckDBConnector:
     def __init__(self):
         self.conn = duckdb.connect()
+        self._create_bucket(StorageConfig.BUCKET_NAME)
 
     def __enter__(self):
         self._configure_minio()
@@ -35,6 +38,11 @@ class DuckDBConnector:
             );
             """
         )
+
+    def _create_bucket(self, bucket: str) -> str:
+        """S'assure que le bucket MinIO existe ou le crée via S3/DuckDB."""
+        self.conn.execute(f"CREATE BUCKET IF NOT EXISTS s3://{bucket};")
+        return bucket
 
     def execute(self, query: str):
         return self.conn.execute(query)

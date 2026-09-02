@@ -1,8 +1,5 @@
 from src.clean.spark_clean import VelibCleaner
-from src.config.database import (
-    AnalysisConfig,
-    StorageConfig,
-)
+from src.config.database import AnalysisConfig, SparkFiles, StorageConfig
 from src.driver.spark_driver import SparkConnector
 from tests.integrity import validate_velib
 
@@ -13,8 +10,8 @@ def clean_velib():
     with SparkConnector() as spark:
         cleaner = VelibCleaner()
 
-        historique_df = spark.get_data("velib_historique_*.parquet")
-        realtime_df = spark.get_data("velib_realtime_*.parquet")
+        historique_df = spark.get_data(SparkFiles.histo_files)
+        realtime_df = spark.get_data(SparkFiles.real_time_files)
         stations_df = spark.get_stations()
 
         historique_clean = cleaner.clean_historique(
