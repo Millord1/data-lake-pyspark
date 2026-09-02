@@ -1,8 +1,13 @@
-from src.ingestion.velib_histo import run_histo_ingestion
-from src.ingestion.velib_ingestion import ingest_stations_velib, upload_parquet_to_minio
+from src.clean.run_clean import clean_velib
+from src.ingestion.velib_histo import VelibHistoryIngestor
+from src.ingestion.velib_ingestion import VelibDataIngestor
 
 
 def run_ingestion():
-    ingest_stations_velib()
-    upload_parquet_to_minio()
-    run_histo_ingestion()
+    ingestor = VelibDataIngestor()
+    ingestor.run_pipeline()
+
+    hist_ingestor = VelibHistoryIngestor()
+    hist_ingestor.run()
+
+    clean_velib()
