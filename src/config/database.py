@@ -14,7 +14,7 @@ class AnalysisQuery(StrEnum):
 
 @dataclass(frozen=True)
 class AnalysisConfig:
-    sql_file: Path = Path("src/analyses/analyses.sql")
+    sql_file: Path = Path("src/sql/analyses.sql")
     view_name: str = "velib"
 
 

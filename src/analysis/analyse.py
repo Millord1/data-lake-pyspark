@@ -14,4 +14,3 @@ def run_analysis():
         result = spark.sql(queries.get(AnalysisQuery.TEST_QUERY))
 
         result.show()
-        result.show()
