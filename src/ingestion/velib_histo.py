@@ -91,8 +91,3 @@ class VelibHistoryIngestor:
                 print(f"✗ {date_str} : fichier inaccessible ({error})")
             except Exception as error:
                 print(f"✗ {date_str} : erreur ({error})")
-
-
-if __name__ == "__main__":
-    ingestor = VelibHistoryIngestor()
-    ingestor.run()
