@@ -1,7 +1,7 @@
 .env
 .ruff_cache
 .vscode
-env
+venv
 .env.docker
 data/
 *.egg-info/
