@@ -23,12 +23,6 @@ def export_analysis(output_dir: str = "data/analysis") -> None:
                 print(f"⚠ Aucun CSV trouvé pour {analysis_name}")
                 continue
 
-            if len(csv_files) > 1:
-                print(
-                    f"⚠ Plusieurs CSV trouvés pour {analysis_name}, "
-                    f"utilisation du premier."
-                )
-
             source_key = csv_files[0]
             destination = output_path / f"{analysis_name}.csv"
             s3.download_file(
