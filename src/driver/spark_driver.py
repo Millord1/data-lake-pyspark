@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from pyspark.sql import DataFrame, SparkSession
 
-from src.config.database import StorageConfig
+from src.config.database import SparkFiles, StorageConfig
 
 load_dotenv(override=False)
 
@@ -83,6 +83,31 @@ class SparkConnector:
             DataFrame: PySpark DataFrame
         """
         return self.spark.sql(query)
+
+    def get_curated_data(
+        self,
+        status: str = SparkFiles.open_folder,
+    ) -> DataFrame:
+        """Lit les données nettoyées (curated)
+        depuis un sous-dossier de partition spécifique.
+
+        Args:
+            status (str, optional): La valeur de la partition (ex: "OPEN", "CLOSED").
+            Defaults to "OPEN".
+
+        Returns:
+            DataFrame: Le PySpark DataFrame chargé
+        """
+        base_path = StorageConfig.get_bucket_path(
+            raw=False,
+            dataset_name="velib",
+        ).replace("s3://", "s3a://")
+
+        partition_path = f"{base_path}/status={status}"
+
+        print(f"Lecture Spark Curated : {partition_path}")
+
+        return self.spark.read.parquet(partition_path)
 
     def stop(self) -> None:
         """Stop PySpark"""

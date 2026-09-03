@@ -38,3 +38,7 @@ def clean_velib():
         (cleaned_df.write.mode("overwrite").partitionBy("status").parquet(output_path))
 
         print(f"✓ Données nettoyées : {output_path}")
+
+
+if __name__ == "__main__":
+    clean_velib()

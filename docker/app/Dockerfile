@@ -12,7 +12,7 @@ RUN apt-get update && \
         procps && \
     rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml ./
 
 RUN mkdir -p src/app && touch src/app/__init__.py
 
@@ -22,5 +22,3 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY . .
 
 RUN pip install --no-deps -e .
-
-CMD ["python", "-m", "src.main"]

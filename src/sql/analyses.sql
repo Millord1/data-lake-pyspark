@@ -25,3 +25,13 @@ SELECT
 FROM velib
 GROUP BY station_id
 ORDER BY avg_bikes DESC;
+
+-- average_bike
+SELECT 
+    station_id,
+    contract_name,
+    AVG(available_bikes) AS avg_bikes,
+    MAX(available_bike_stands) AS max_stands
+FROM velib_open
+GROUP BY station_id, contract_name
+ORDER BY avg_bikes DESC

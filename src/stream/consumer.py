@@ -16,7 +16,10 @@ sys.path.append(str(project_root))
 
 load_dotenv()
 
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "redpanda:9092")
+
+print("========= Consumer: " + KAFKA_BOOTSTRAP_SERVERS)
+
 
 MINIO_ACCESS_KEY = os.environ.get("MINIO_USER")
 MINIO_SECRET_KEY = os.environ.get("MINIO_PASSWORD")

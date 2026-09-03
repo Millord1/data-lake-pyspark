@@ -12,7 +12,7 @@ class S3Connector:
     """Connecteur S3 compatible avec MinIO."""
 
     def __init__(self):
-        endpoint = os.environ["MINIO_ENDPOINT"]
+        endpoint = os.environ.get("MINIO_ENDPOINT")
 
         if not endpoint.startswith(("http://", "https://")):
             endpoint = f"http://{endpoint}"
@@ -20,8 +20,8 @@ class S3Connector:
         self.client = boto3.client(
             "s3",
             endpoint_url=endpoint,
-            aws_access_key_id=os.environ["MINIO_USER"],
-            aws_secret_access_key=os.environ["MINIO_PASSWORD"],
+            aws_access_key_id=os.environ.get("MINIO_USER"),
+            aws_secret_access_key=os.environ.get("MINIO_PASSWORD"),
             region_name="us-east-1",
             config=Config(
                 signature_version="s3v4",

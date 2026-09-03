@@ -10,17 +10,21 @@ class AnalysisQuery(StrEnum):
     COUNT_STATIONS = "count_stations"
     TOP_STATIONS = "top_stations"
     AVAILABLE_BIKES_BY_STATION = "available_bikes_by_station"
+    AVERAGE_BIKES = "average_bike"
 
 
 @dataclass(frozen=True)
 class AnalysisConfig:
     sql_file: Path = Path("src/sql/analyses.sql")
     view_name: str = "velib"
+    curated_view_name: str = "velib_open"
 
 
 class SparkFiles(StrEnum):
     histo_files: str = "velib_historique_*.parquet"
     real_time_files: str = "velib_realtime_*.parquet"
+    open_folder: str = "OPEN"
+    close_folder: str = "CLOSED"
 
 
 class AnalysisQueries:

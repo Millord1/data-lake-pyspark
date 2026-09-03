@@ -13,3 +13,7 @@ def run_analysis():
         result = spark.sql(queries.get(AnalysisQuery.TEST_QUERY))
 
         result.show()
+
+
+if __name__ == "__main__":
+    run_analysis()

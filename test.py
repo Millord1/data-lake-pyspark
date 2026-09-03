@@ -1,8 +1,12 @@
-from src.config.database import AnalysisConfig, StorageConfig
+from src.config.database import AnalysisConfig, AnalysisQueries, SparkFiles
+from src.driver.spark_driver import SparkConnector
 
-output_path = StorageConfig.get_bucket_path(
-    raw=False,
-    dataset_name=AnalysisConfig.view_name,
-).replace("s3", "s3a")
+with SparkConnector() as spark:
+    queries = AnalysisQueries(AnalysisConfig.sql_file)
 
-print(output_path)
+    df_open = spark.get_curated_data(status=SparkFiles.open_folder)
+
+    spark.create_view(df_open, view_name=AnalysisConfig.curated_view_name)
+    res = spark.sql(queries.get(AnalysisQueries.AVERAGE_BIKES))
+
+    res.show(10)
