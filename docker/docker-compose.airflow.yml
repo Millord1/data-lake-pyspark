@@ -208,6 +208,7 @@ services:
       - ../dags:/opt/airflow/dags
       - ../src:/opt/airflow/src
       - ../tests:/opt/airflow/tests
+      - ../data/analysis:/opt/airflow/data
     ports:
       - "8085:8080"
     command: >

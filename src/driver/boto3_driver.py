@@ -54,6 +54,30 @@ class S3Connector:
         if not self.bucket_exists(bucket):
             self.client.create_bucket(Bucket=bucket)
 
+    def list_objects(
+        self,
+        bucket: str,
+        prefix: str = "",
+    ) -> list[str]:
+        response = self.client.list_objects_v2(
+            Bucket=bucket,
+            Prefix=prefix,
+        )
+
+        return [obj["Key"] for obj in response.get("Contents", [])]
+
+    def download_file(
+        self,
+        bucket: str,
+        key: str,
+        local_path: str,
+    ) -> None:
+        self.client.download_file(
+            Bucket=bucket,
+            Key=key,
+            Filename=local_path,
+        )
+
     def exists(self, bucket: str, key: str) -> bool:
         """Vérifie si un objet existe dans un bucket."""
         try:

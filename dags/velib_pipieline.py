@@ -32,7 +32,13 @@ def velib_pipeline():
         name="velib-analyse",
     )
 
-    ingest() >> clean >> analyse
+    @task
+    def export():
+        from src.analysis.export import export_analysis
+
+        export_analysis("opt/airflow/data")
+
+    ingest() >> clean >> analyse >> export()
 
 
 velib_pipeline()

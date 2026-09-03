@@ -11,6 +11,12 @@ class AnalysisQuery(StrEnum):
     TOP_STATIONS = "top_stations"
     AVAILABLE_BIKES_BY_STATION = "available_bikes_by_station"
     AVERAGE_BIKES = "average_bike"
+    FILLING = "filling"
+    MOST_USED_STATIONS = "most_used_stations"
+    MOST_EMPTY_STATIONS = "most_empty_stations"
+    ALMOST_EMPTY_STATIONS = "almost_empty_stations"
+    FREQUENTLY_FULL_STATIONS = "frequently_full_stations"
+    DAILY_AVERAGE = "daily_usage"
 
 
 @dataclass(frozen=True)
@@ -52,6 +58,7 @@ class StorageConfig:
     RAW_FOLDER = "raw"
     CLEANED_FOLDER = "curated"
     SCHEMA_NAME = "public"
+    ANALYSIS_SCHEMA = "analysis"
 
     @classmethod
     def get_bucket_path(
@@ -91,6 +98,21 @@ class StorageConfig:
             parts.append(filename)
 
         return "/".join(parts)
+
+    @classmethod
+    def get_analysis_path(cls, analysis_name: str) -> str:
+        """Retourne le chemin S3A d'un résultat d'analyse Spark."""
+        return (
+            f"s3a://{cls.BUCKET_NAME}/"
+            f"{cls.CLEANED_FOLDER}/"
+            f"{cls.ANALYSIS_SCHEMA}/"
+            f"{analysis_name}"
+        )
+
+    @classmethod
+    def get_analysis_key(cls, analysis_name: str) -> str:
+        """Retourne la clé S3 d'un résultat d'analyse."""
+        return f"{cls.CLEANED_FOLDER}/" f"{cls.ANALYSIS_SCHEMA}/" f"{analysis_name}/"
 
 
 class SourcesUrls(StrEnum):

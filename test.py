@@ -1,12 +1,28 @@
-from src.config.database import AnalysisConfig, AnalysisQueries, SparkFiles
+from src.config.database import (
+    AnalysisConfig,
+    AnalysisQueries,
+    AnalysisQuery,
+)
 from src.driver.spark_driver import SparkConnector
 
-with SparkConnector() as spark:
+
+def run_analysis():
     queries = AnalysisQueries(AnalysisConfig.sql_file)
 
-    df_open = spark.get_curated_data(status=SparkFiles.open_folder)
+    with SparkConnector() as spark:
+        df = spark.get_curated_data()
 
-    spark.create_view(df_open, view_name=AnalysisConfig.curated_view_name)
-    res = spark.sql(queries.get(AnalysisQueries.AVERAGE_BIKES))
+        spark.create_view(df, AnalysisConfig.view_name)
 
-    res.show(10)
+        for query_type in AnalysisQuery:
+            result = spark.sql(queries.get(query_type))
+
+            output_path = f"s3://data/curated/analysis/{query_type}"
+
+            result.coalesce(1).write.mode("overwrite").option("header", True).csv(
+                output_path
+            )
+
+
+if __name__ == "__main__":
+    run_analysis()
