@@ -51,30 +51,27 @@ ORDER BY year, month;
 -- name: most_used_stations
 SELECT
     station_id,
-    name,
     ROUND(AVG(bikes), 2) AS avg_bikes,
     MAX(bikes) AS max_bikes,
     MAX(capacity) AS capacity
 FROM velib
-GROUP BY station_id, name
+GROUP BY station_id
 ORDER BY avg_bikes DESC
 LIMIT 20;
 
 -- name: most_empty_stations
 SELECT
     station_id,
-    name,
     ROUND(AVG(bikes), 2) AS avg_bikes,
     MAX(capacity) AS capacity
 FROM velib
-GROUP BY station_id, name
+GROUP BY station_id
 ORDER BY avg_bikes
 LIMIT 20;
 
 -- name: almost_empty_stations
 SELECT
     station_id,
-    name,
     COUNT(*) AS observations,
     SUM(CASE WHEN bikes <= 1 THEN 1 ELSE 0 END) AS nearly_empty,
     ROUND(
@@ -82,7 +79,7 @@ SELECT
         2
     ) AS pct_nearly_empty
 FROM velib
-GROUP BY station_id, name
+GROUP BY station_id
 HAVING COUNT(*) > 100
 ORDER BY pct_nearly_empty DESC
 LIMIT 20;
@@ -91,7 +88,6 @@ LIMIT 20;
 -- name: frequently_full_stations
 SELECT
     station_id,
-    name,
     COUNT(*) AS observations,
     SUM(
         CASE
@@ -109,7 +105,7 @@ SELECT
         2
     ) AS pct_nearly_full
 FROM velib
-GROUP BY station_id, name
+GROUP BY station_id
 HAVING COUNT(*) > 100
 ORDER BY pct_nearly_full DESC
 LIMIT 20;

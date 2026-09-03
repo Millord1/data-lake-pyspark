@@ -120,6 +120,13 @@ KAFKA_BOOTSTRAP_SERVERS=redpanda:9092
 KAFKA_TOPIC=velib-status
 ```
 
+Il faut également changer les droits d'accès au dossier **data/analysis** afin que docker compose puisse écrire dedans (export des analyses):
+
+```bash
+sudo chown -R 50000:0 data/analysis
+sudo chmod -R 775 data/analysis
+```
+
 ## Lancer le projet
 
 Depuis la racine :
@@ -299,3 +306,11 @@ Vélib API
 ```
 
 Docker Compose gère l'infrastructure, tandis qu'Airflow orchestre les traitements Data Engineering.
+
+Accéder aux data:
+
+Il faut ouvrir un login shell en root pour voir les data:
+
+```bash
+sudo -i
+```

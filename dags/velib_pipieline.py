@@ -36,7 +36,7 @@ def velib_pipeline():
     def export():
         from src.analysis.export import export_analysis
 
-        export_analysis("opt/airflow/data")
+        export_analysis("/opt/airflow/data")
 
     ingest() >> clean >> analyse >> export()
 
