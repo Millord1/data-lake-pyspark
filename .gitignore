@@ -2,6 +2,7 @@
 .ruff_cache
 .vscode
 env
+venv
 .env.docker
 data/
 spark-warehouse

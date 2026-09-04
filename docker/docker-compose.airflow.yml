@@ -20,7 +20,7 @@ services:
       - velib-network
 
   mongodb:
-    image: mongo:8
+    image: mongo:8.0.4
     container_name: distant_spark_mongodb
     command: mongod --logpath /dev/null
     ports:

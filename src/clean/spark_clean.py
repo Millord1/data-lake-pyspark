@@ -283,3 +283,33 @@ class VelibCleaner:
         )
 
         return historique.unionByName(realtime)
+
+
+class WeatherCleaner:
+    """Nettoie et aplatit les archives JSON brutes d'Open-Meteo."""
+
+    @staticmethod
+    def clean(df_raw: DataFrame) -> DataFrame:
+        """Déplie séries temporelles parallèles en lignes horaires relationnelles."""
+        return (
+            df_raw.select(
+                F.explode(
+                    F.arrays_zip(
+                        "payload.hourly.time",
+                        "payload.hourly.temperature_2m",
+                        "payload.hourly.relative_humidity_2m",
+                        "payload.hourly.precipitation",
+                        "payload.hourly.wind_speed_10m",
+                    )
+                ).alias("w")
+            )
+            .select(
+                F.to_timestamp("w.time").alias("weather_ts"),
+                F.col("w.temperature_2m").cast("double").alias("temp_c"),
+                F.col("w.relative_humidity_2m").cast("int").alias("humidity_pct"),
+                F.col("w.precipitation").cast("double").alias("precip_mm"),
+                F.col("w.wind_speed_10m").cast("double").alias("wind_speed_kmh"),
+            )
+            .filter(F.col("weather_ts").isNotNull())
+            .dropDuplicates(["weather_ts"])
+        )

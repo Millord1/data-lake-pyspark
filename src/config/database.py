@@ -68,7 +68,7 @@ class StorageConfig:
     ) -> str:
         """Retourne un chemin S3 complet."""
         folder = cls.RAW_FOLDER if raw else cls.CLEANED_FOLDER
-        path = f"s3://{cls.BUCKET_NAME}/" f"{folder}/" f"{cls.SCHEMA_NAME}"
+        path = f"s3://{cls.BUCKET_NAME}/{folder}/{cls.SCHEMA_NAME}"
         if dataset_name:
             path = f"{path}/{dataset_name}"
 
@@ -112,13 +112,38 @@ class StorageConfig:
     @classmethod
     def get_analysis_key(cls, analysis_name: str) -> str:
         """Retourne la clé S3 d'un résultat d'analyse."""
-        return f"{cls.CLEANED_FOLDER}/" f"{cls.ANALYSIS_SCHEMA}/" f"{analysis_name}/"
+        return f"{cls.CLEANED_FOLDER}/{cls.ANALYSIS_SCHEMA}/{analysis_name}/"
+
+
+# 2. Add MongoConfig dataclass
+@dataclass(frozen=True)
+class MongoConfig:
+    database_name: str = "weather_landing"
+    collection_name: str = "raw_weather_archive"
+    default_host: str = "localhost"
+    default_port: int = 27017
+
+
+# 3. Add Weather query defaults
+@dataclass(frozen=True)
+class WeatherQueryConfig:
+    latitude: float = 48.8566
+    longitude: float = 2.3522
+    start_date: str = "2021-01-01"
+    end_date: str = "2025-12-31"
+    timezone: str = "Europe/Paris"
+    hourly_variables: tuple[str, ...] = (
+        "temperature_2m",
+        "relative_humidity_2m",
+        "precipitation",
+        "wind_speed_10m",
+    )
 
 
 class SourcesUrls(StrEnum):
     velib_station: str = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-emplacement-des-stations/exports/parquet?lang=fr&timezone=Europe%2FBerlin"
     velib_api: str = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/velib-emplacement-des-stations/records?"
-    meteo: str = ""
+    meteo: str = "https://archive-api.open-meteo.com/v1/archive"
 
 
 VELIB_HISTORY = [
