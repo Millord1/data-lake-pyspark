@@ -1,0 +1,229 @@
+services:
+
+  minio:
+    image: minio/minio:latest
+    container_name: distant_spark_minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    env_file:
+      - ../.env.docker
+    volumes:
+      - ${HOME}/minio/data_compose:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - velib-network
+
+  mongodb:
+    image: mongo:8
+    container_name: distant_spark_mongodb
+    command: mongod --logpath /dev/null
+    ports:
+      - "27017:27017"
+    env_file:
+      - ../.env.docker
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "-u",
+          "${MONGO_USER}",
+          "-p",
+          "${MONGO_PASSWORD}",
+          "--authenticationDatabase",
+          "admin",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping')"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - velib-network
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v23.3.3
+    container_name: redpanda-tracker
+    command:
+      - redpanda
+      - start
+      - --smp
+      - "1"
+      - --memory
+      - "1G"
+      - --mode
+      - dev-container
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr
+      - 0.0.0.0:8082
+    ports:
+      - "19092:19092"
+      - "8082:8082"
+      - "9644:9644"
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    networks:
+      - velib-network
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/app/Dockerfile
+    container_name: distant_spark_app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env.docker
+    depends_on:
+      minio:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - velib-network
+
+  producer:
+    build:
+      context: ..
+      dockerfile: docker/app/Dockerfile
+    container_name: velib-producer
+    command: python -m src.stream.producer
+    env_file:
+      - ../.env.docker
+    depends_on:
+      - redpanda
+    networks:
+      - velib-network
+    restart: unless-stopped
+
+  consumer:
+    build:
+      context: ..
+      dockerfile: docker/app/Dockerfile
+    container_name: velib-consumer
+    command: python -m src.stream.consumer
+    env_file:
+      - ../.env.docker
+    depends_on:
+      - redpanda
+      - minio
+    networks:
+      - velib-network
+    restart: unless-stopped
+
+  spark-master:
+    build:
+      context: ..
+      dockerfile: docker/spark/Dockerfile
+    container_name: distant_doc_spark_master
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.master.Master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+    networks:
+      - velib-network
+
+  spark-worker:
+    build:
+      context: ..
+      dockerfile: docker/spark/Dockerfile
+    container_name: distant_doc_spark_worker
+    command: >
+      /opt/spark/bin/spark-class
+      org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_WORKER_CORES: "2"
+      SPARK_WORKER_MEMORY: "2g"
+    ports:
+      - "8081:8081"
+    networks:
+      - velib-network
+
+  airflow-postgres:
+    image: postgres:16
+    container_name: airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U airflow -d airflow"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - velib-network
+
+  airflow:
+    build:
+      context: ..
+      dockerfile: docker/airflow/Dockerfile
+    container_name: airflow
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      spark-master:
+        condition: service_started
+    env_file:
+      - ../.env.docker
+    environment:
+      PYTHONPATH: /opt/airflow
+      AIRFLOW_CONN_SPARK_DEFAULT: "spark://spark-master:7077"
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      MONGO_URI: mongodb://mongodb:27017/
+      SPARK_MASTER_URL: spark://spark-master:7077
+    volumes:
+      - ../dags:/opt/airflow/dags
+      - ../src:/opt/airflow/src
+      - ../tests:/opt/airflow/tests
+      - ../data/analysis:/opt/airflow/data
+    ports:
+      - "8085:8080"
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow standalone
+      "
+    networks:
+      - velib-network
+
+volumes:
+  mongo-data:
+  redpanda-data:
+  airflow-postgres-data:
+
+networks:
+  velib-network:
+    driver: bridge
