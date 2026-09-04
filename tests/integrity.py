@@ -3,6 +3,11 @@ from pyspark.sql import functions as F
 
 
 def validate_velib(df: DataFrame) -> None:
+    """Test data integrity
+
+    Args:
+        df (DataFrame): pySpark pandas DataFrame
+    """
     print("DATA QUALITY")
 
     df.select(

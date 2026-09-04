@@ -8,6 +8,7 @@ from src.driver.spark_driver import SparkConnector
 
 
 def run_analysis():
+    """Run all the SQL queries (src/sql)"""
     queries = AnalysisQueries(AnalysisConfig.sql_file)
 
     with SparkConnector() as spark:

@@ -1,12 +1,8 @@
-from src.analysis.analyse import run_analysis
-from src.ingestion.run_ingestion import run_ingestion
-
 # File useless and unused
 
 
 def main():
-    run_ingestion()
-    run_analysis()
+    pass
 
 
 if __name__ == "__main__":

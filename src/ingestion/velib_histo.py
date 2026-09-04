@@ -11,7 +11,7 @@ load_dotenv()
 
 
 class VelibHistoryIngestor:
-    """Gère l'ingestion des archives historiques Vélib."""
+    """Manage archive ingestion"""
 
     def __init__(
         self,
@@ -27,7 +27,14 @@ class VelibHistoryIngestor:
         self,
         filename: str,
     ) -> bool:
-        """Vérifie si un fichier existe déjà dans MinIO."""
+        """Check if an object already exists
+
+        Args:
+            filename (str): filename to find
+
+        Returns:
+            bool: True if exists
+        """
         bucket = StorageConfig.BUCKET_NAME
         key = StorageConfig.get_s3_key(
             raw=True,
@@ -43,7 +50,15 @@ class VelibHistoryIngestor:
         source_url: str,
         date_str: str,
     ) -> Path:
-        """Télécharge une archive historique."""
+        """Download an historical archive
+
+        Args:
+            source_url (str): Url to call
+            date_str (str): Date to put on the file name
+
+        Returns:
+            Path: Path of downloaded file
+        """
 
         filename = f"velib_historique_{date_str}.jjson.gz"
         local_file = self.local_dir / filename
@@ -67,8 +82,12 @@ class VelibHistoryIngestor:
         source_url: str,
         date_str: str,
     ) -> None:
-        """Télécharge et transforme une archive historique."""
+        """Ingest a signle day of data
 
+        Args:
+            source_url (str): Url to call
+            date_str (str): Date to put on the file name
+        """
         filename = f"velib_historique_{date_str}.parquet"
         if self._minio_object_exists(filename):
             print(f"✓ {filename} existe déjà dans MinIO. " "Ingestion ignorée.")
@@ -150,7 +169,12 @@ class VelibHistoryIngestor:
         self,
         history_list: list[tuple[str, str]] = VELIB_HISTORY,
     ) -> None:
-        """Ingère toutes les archives historiques."""
+        """Ingest all historical data
+
+        Args:
+            history_list (list[tuple[str, str]], optional): List of URLs to call.
+            Defaults to VELIB_HISTORY.
+        """
 
         for date_str, url in history_list:
             try:

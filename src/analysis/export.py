@@ -5,7 +5,12 @@ from src.driver.boto3_driver import S3Connector
 
 
 def export_analysis(output_dir: str = "data/analysis") -> None:
-    """Exporte les résultats d'analyse CSV depuis MinIO vers un dossier local."""
+    """Export result CSV from analysis
+
+    Args:
+        output_dir (str, optional): Output path, should have rights to be wrote on.
+        Defaults to "data/analysis".
+    """
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 

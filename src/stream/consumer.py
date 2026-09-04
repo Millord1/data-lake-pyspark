@@ -1,24 +1,16 @@
 import json
 import os
-import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
-import duckdb
 from confluent_kafka import Consumer, KafkaError
 from dotenv import load_dotenv
 
 from src.config.database import KAFKA_TOPIC, StorageConfig
-
-project_root = Path(__file__).resolve().parents[2]
-sys.path.append(str(project_root))
-
+from src.driver.duckdb_driver import DuckDBConnector
 
 load_dotenv()
 
 KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "redpanda:9092")
-
-print("========= Consumer: " + KAFKA_BOOTSTRAP_SERVERS)
 
 
 MINIO_ACCESS_KEY = os.environ.get("MINIO_USER")
@@ -26,34 +18,26 @@ MINIO_SECRET_KEY = os.environ.get("MINIO_PASSWORD")
 MINIO_ENDPOINT = os.environ.get("MINIO_ENDPOINT")
 
 
-def flush_batch_to_minio(records: list[dict]):
+def flush_batch_to_minio(records: list[dict]) -> None:
+    """Send data to minIO
+
+    Args:
+        records (list[dict]): All the data to save
+    """
+
     if not records:
         return
 
-    con = duckdb.connect()
-    try:
-        con.execute("INSTALL httpfs; LOAD httpfs;")
-        con.execute(
-            f"""
-            CREATE OR REPLACE SECRET minio (
-                TYPE s3,
-                PROVIDER config,
-                KEY_ID '{MINIO_ACCESS_KEY}',
-                SECRET '{MINIO_SECRET_KEY}',
-                ENDPOINT '{MINIO_ENDPOINT}',
-                REGION 'us-east-1',
-                URL_STYLE 'path',
-                USE_SSL false
-            );
-            """
-        )
+    timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
-        timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    base_path = StorageConfig.get_bucket_path(
+        raw=True,
+        dataset_name="historique",
+    )
+    target_path = f"{base_path}/velib_realtime_{timestamp_str}.parquet"
 
-        base_path = StorageConfig.get_bucket_path(raw=True, dataset_name="historique")
-        target_path = f"{base_path}/velib_realtime_{timestamp_str}.parquet"
-
-        con.execute(
+    with DuckDBConnector() as db:
+        db.execute(
             f"""
             COPY (
                 SELECT
@@ -90,20 +74,23 @@ def flush_batch_to_minio(records: list[dict]):
             [json.dumps(records)],
         )
 
-        print(
-            f"Micro-batch de {len(records)} lignes écrit avec succès dans {target_path}"
-        )
-
-    finally:
-        con.close()
+    print(
+        f"Micro-batch de {len(records)} lignes écrit avec succès " f"dans {target_path}"
+    )
 
 
 def run_consumer(batch_size: int = 1000, timeout_seconds: float = 10.0):
+    """Start Kafka consumer
+
+    Args:
+        batch_size (int, optional): Batch size to create. Defaults to 1000.
+        timeout_seconds (float, optional): Timeout setup. Defaults to 10.0.
+    """
     conf = {
         "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
         "group.id": "velib-s3-ingestion-group",
         "auto.offset.reset": "earliest",
-        "enable.auto.commit": False,  # Commit manuel post-écriture MinIO
+        "enable.auto.commit": False,
     }
 
     consumer = Consumer(conf)

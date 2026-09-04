@@ -36,7 +36,14 @@ class S3Connector:
         self.client.close()
 
     def bucket_exists(self, bucket: str) -> bool:
-        """Vérifie si un bucket existe."""
+        """Check if a bucket exists
+
+        Args:
+            bucket (str): Bucket name
+
+        Returns:
+            bool: True if exists
+        """
         try:
             self.client.head_bucket(Bucket=bucket)
             return True
@@ -50,7 +57,11 @@ class S3Connector:
             raise
 
     def ensure_bucket(self, bucket: str) -> None:
-        """Crée le bucket s'il n'existe pas."""
+        """Get or create the bucket
+
+        Args:
+            bucket (str): Bucket name
+        """
         if not self.bucket_exists(bucket):
             self.client.create_bucket(Bucket=bucket)
 
@@ -59,6 +70,15 @@ class S3Connector:
         bucket: str,
         prefix: str = "",
     ) -> list[str]:
+        """List all objects in the Bucket
+
+        Args:
+            bucket (str): Bucket name
+            prefix (str, optional): Prefix. Defaults to "".
+
+        Returns:
+            list[str]: Return found objects
+        """
         response = self.client.list_objects_v2(
             Bucket=bucket,
             Prefix=prefix,
@@ -72,6 +92,13 @@ class S3Connector:
         key: str,
         local_path: str,
     ) -> None:
+        """Download file (to export)
+
+        Args:
+            bucket (str): Bucket name
+            key (str): S3 key
+            local_path (str): Path to minIO
+        """
         self.client.download_file(
             Bucket=bucket,
             Key=key,
@@ -79,7 +106,15 @@ class S3Connector:
         )
 
     def exists(self, bucket: str, key: str) -> bool:
-        """Vérifie si un objet existe dans un bucket."""
+        """Check if exists
+
+        Args:
+            bucket (str): Bucket name
+            key (str): S3 key
+
+        Returns:
+            bool: True if exists
+        """
         try:
             self.client.head_object(
                 Bucket=bucket,
@@ -101,7 +136,13 @@ class S3Connector:
         bucket: str,
         key: str,
     ) -> None:
-        """Upload un fichier local vers S3/MinIO."""
+        """Upload a file
+
+        Args:
+            local_path (str): S3 Path
+            bucket (str): Bucket name
+            key (str): S3 key
+        """
         self.client.upload_file(
             Filename=local_path,
             Bucket=bucket,

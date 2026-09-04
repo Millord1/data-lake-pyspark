@@ -6,10 +6,8 @@ KAFKA_TOPIC = "velib-status"
 
 
 class AnalysisQuery(StrEnum):
-    TEST_QUERY = "test_query"
-    COUNT_STATIONS = "count_stations"
-    TOP_STATIONS = "top_stations"
-    AVAILABLE_BIKES_BY_STATION = "available_bikes_by_station"
+    """Str Enum to list all SQL queries"""
+
     AVERAGE_BIKES = "average_bike"
     FILLING = "filling"
     MOST_USED_STATIONS = "most_used_stations"
@@ -21,12 +19,16 @@ class AnalysisQuery(StrEnum):
 
 @dataclass(frozen=True)
 class AnalysisConfig:
+    """Analysis Configuration"""
+
     sql_file: Path = Path("src/sql/analyses.sql")
     view_name: str = "velib"
     curated_view_name: str = "velib_open"
 
 
 class SparkFiles(StrEnum):
+    """Spark files configuration"""
+
     histo_files: str = "velib_historique_*.parquet"
     real_time_files: str = "velib_realtime_*.parquet"
     open_folder: str = "OPEN"
@@ -34,11 +36,21 @@ class SparkFiles(StrEnum):
 
 
 class AnalysisQueries:
+    """Load SQL queries"""
+
     def __init__(self, sql_file: Path):
         self.queries = self._load_queries(sql_file)
 
     @staticmethod
     def _load_queries(sql_file: Path) -> dict[str, str]:
+        """Load all queries from .sql file
+
+        Args:
+            sql_file (Path): File to load
+
+        Returns:
+            dict[str, str]: dict of all queries
+        """
         content = sql_file.read_text()
 
         queries = {}
@@ -50,10 +62,20 @@ class AnalysisQueries:
         return queries
 
     def get(self, query: AnalysisQuery) -> str:
+        """Get one query from name
+
+        Args:
+            query (AnalysisQuery): The query name to get
+
+        Returns:
+            str: The SQL query
+        """
         return self.queries[query.value]
 
 
 class StorageConfig:
+    """Storage Configuration"""
+
     BUCKET_NAME = "data"
     RAW_FOLDER = "raw"
     CLEANED_FOLDER = "curated"
@@ -66,7 +88,15 @@ class StorageConfig:
         raw: bool = True,
         dataset_name: str = "",
     ) -> str:
-        """Retourne un chemin S3 complet."""
+        """Return a full S3 path
+
+        Args:
+            raw (bool, optional): Raw or curated. Defaults to True (raw).
+            dataset_name (str, optional): dataset to add to path. Defaults to "".
+
+        Returns:
+            str: the full S3 path
+        """
         folder = cls.RAW_FOLDER if raw else cls.CLEANED_FOLDER
         path = f"s3://{cls.BUCKET_NAME}/" f"{folder}/" f"{cls.SCHEMA_NAME}"
         if dataset_name:
@@ -76,6 +106,11 @@ class StorageConfig:
 
     @classmethod
     def get_spark_s3_path(cls):
+        """Get S3 path Spark compatible
+
+        Returns:
+            _type_: The S3 path for Spark
+        """
         return cls.get_bucket_path().replace("s3", "s3a") + "/historique"
 
     @classmethod
@@ -85,7 +120,16 @@ class StorageConfig:
         dataset_name: str = "",
         filename: str = "",
     ) -> str:
-        """Retourne uniquement la clé S3 utilisée par boto3."""
+        """Return the S3 key used by Boto
+
+        Args:
+            raw (bool, optional): Raw or curated. Defaults to True (raw).
+            dataset_name (str, optional): dataset to add to key. Defaults to "".
+            filename (str, optional): filename to get. Defaults to "".
+
+        Returns:
+            str: The S3 Key
+        """
         folder = cls.RAW_FOLDER if raw else cls.CLEANED_FOLDER
         parts = [
             folder,
@@ -101,7 +145,14 @@ class StorageConfig:
 
     @classmethod
     def get_analysis_path(cls, analysis_name: str) -> str:
-        """Retourne le chemin S3A d'un résultat d'analyse Spark."""
+        """Return the S3 path of on analysis
+
+        Args:
+            analysis_name (str): The analyse to get
+
+        Returns:
+            str: S3 path
+        """
         return (
             f"s3a://{cls.BUCKET_NAME}/"
             f"{cls.CLEANED_FOLDER}/"
@@ -111,7 +162,14 @@ class StorageConfig:
 
     @classmethod
     def get_analysis_key(cls, analysis_name: str) -> str:
-        """Retourne la clé S3 d'un résultat d'analyse."""
+        """Return S3 key of an analysis
+
+        Args:
+            analysis_name (str): The analyse to get
+
+        Returns:
+            str: The S3 key of the analysis
+        """
         return f"{cls.CLEANED_FOLDER}/" f"{cls.ANALYSIS_SCHEMA}/" f"{analysis_name}/"
 
 

@@ -40,7 +40,14 @@ class SparkConnector:
         self,
         filename_pattern: str = "*.parquet",
     ) -> DataFrame:
-        """Lit les données Vélib depuis MinIO."""
+        """Read velib data from minIO
+
+        Args:
+            filename_pattern (str, optional): Filename to read. Defaults to "*.parquet".
+
+        Returns:
+            DataFrame: Spark pandas DataFrame
+        """
 
         path = StorageConfig.get_spark_s3_path()
 
@@ -110,7 +117,6 @@ class SparkConnector:
         return self.spark.read.parquet(partition_path)
 
     def stop(self) -> None:
-        """Stop PySpark"""
         self.spark.stop()
 
     def __enter__(self):

@@ -13,7 +13,7 @@ load_dotenv(project_root / ".env")
 
 
 class VelibDataIngestor:
-    """Gère l'ingestion des datasets Vélib."""
+    """Ingest velib datasets"""
 
     def __init__(
         self,
@@ -27,7 +27,15 @@ class VelibDataIngestor:
         dataset_name: str,
         filename: str,
     ) -> bool:
-        """Vérifie si un fichier existe déjà dans MinIO."""
+        """Check if an object exists
+
+        Args:
+            dataset_name (str): dataset name
+            filename (str): file name
+
+        Returns:
+            bool: True if exists
+        """
 
         bucket = StorageConfig.BUCKET_NAME
 
@@ -41,7 +49,15 @@ class VelibDataIngestor:
             return s3.exists(bucket, key)
 
     def download_and_move_dataset(self) -> str:
-        """Télécharge le dataset historique depuis Kaggle."""
+        """Download a dataset from kaggle
+
+        Raises:
+            RuntimeError: Download exception
+            FileNotFoundError: File not found
+
+        Returns:
+            str: Dataset path
+        """
 
         target_file = self.data_dir / "velib_historique.parquet"
 
@@ -78,7 +94,7 @@ class VelibDataIngestor:
         return str(target_file)
 
     def ingest_stations_velib(self) -> None:
-        """Ingère les stations Vélib dans MinIO."""
+        """Ingest velib stations to minIO"""
 
         dataset_name = "stations"
         filename = "velib_stations.parquet"
@@ -126,7 +142,7 @@ class VelibDataIngestor:
         print(f"✓ {result[0]:,} stations ingérées.")
 
     def upload_parquet_to_minio(self) -> str:
-        """Upload le dataset historique vers MinIO."""
+        """upload kaggle dataset to minIO"""
 
         dataset_name = "historique"
         filename = "velib_historique.parquet"
@@ -177,7 +193,7 @@ class VelibDataIngestor:
         return destination
 
     def run_pipeline(self) -> None:
-        """Exécute l'ingestion complète."""
+        """Execute ingestions"""
 
         self.ingest_stations_velib()
         self.upload_parquet_to_minio()
